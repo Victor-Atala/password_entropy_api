@@ -1,3 +1,4 @@
+# logic.py
 import math
 import csv
 
@@ -5,15 +6,13 @@ import csv
 LOWERCASE = 26
 UPPERCASE = 26
 DIGITS = 10
-SYMBOLS = 32  # Aproximación estándar (!@#$%^&*...)
+SYMBOLS = 32
 
 def calculate_N(password: str) -> int:
-    """Calcula el tamaño del alfabeto (N) basado en los caracteres usados."""
     pool_size = 0
     has_lower = any(c.islower() for c in password)
     has_upper = any(c.isupper() for c in password)
     has_digit = any(c.isdigit() for c in password)
-    # Asumimos que si no es letra ni número, es símbolo
     has_symbol = any(not c.isalnum() for c in password)
 
     if has_lower: pool_size += LOWERCASE
@@ -24,24 +23,16 @@ def calculate_N(password: str) -> int:
     return pool_size
 
 def calculate_entropy(password: str) -> float:
-    """Aplica la fórmula E = L * log2(N)"""
     L = len(password)
     N = calculate_N(password)
-    
     if N == 0: return 0.0
-    
     entropy = L * math.log2(N)
     return round(entropy, 2)
 
 def estimate_crack_time(entropy: float) -> str:
-    """
-    Calcula tiempo basado en 10^11 intentos/segundo (100 Billion guesses/sec).
-    Fórmula: Combinaciones (2^E) / Tasa
-    """
     if entropy == 0: return "Instante"
-    
     combinations = 2 ** entropy
-    rate = 10**11  # 100 Giga-intentos por segundo (Hardware moderno potente)
+    rate = 10**11 
     seconds = combinations / rate
     
     if seconds < 60: return f"{seconds:.4f} segundos"
@@ -52,27 +43,20 @@ def estimate_crack_time(entropy: float) -> str:
     return "Siglos (Virtualmente imposible)"
 
 def load_breached_passwords(filepath: str) -> set:
-    """
-    Carga el CSV de contraseñas filtradas en memoria (HashSet) para búsqueda O(1).
-    Solo usa la columna 2 del CSV.
-    """
     breached_set = set()
     try:
         with open(filepath, mode='r', encoding='utf-8', errors='ignore') as f:
             reader = csv.reader(f)
-            # next(reader) # Descomentar si el CSV tiene encabezados reales
             for row in reader:
                 if len(row) >= 2:
-                    # Limpiamos espacios y tomamos columna 2 (índice 1)
                     breached_set.add(row[1].strip())
     except FileNotFoundError:
-        print("ADVERTENCIA: Archivo passwords.csv no encontrado. La verificación de diccionario se omitirá.")
+        print("ADVERTENCIA: Archivo passwords.csv no encontrado.")
     return breached_set
 
 def evaluate_strength(entropy: float, is_breached: bool) -> str:
     if is_breached:
         return "Comprometida (En diccionario)"
-    
     if entropy < 60:
         return "Débil / Aceptable"
     elif entropy < 80:
